@@ -1,0 +1,204 @@
+---
+import ProjectCard from './ProjectCard.astro';
+import RetypeText from './RetypeText.astro';
+import { categories } from '../data/categories.js';
+
+const { projects } = Astro.props;
+
+/** Cards per row on wide screens. Rows are split so hover only affects its own row. */
+const PER_ROW = 6;
+const rows = Array.from({ length: Math.ceil(projects.length / PER_ROW) }, (_, i) =>
+	projects.slice(i * PER_ROW, (i + 1) * PER_ROW),
+);
+
+// Categories without any projects yet are left out; they appear once a project uses them.
+const filters = [
+	{ id: 'all', label: 'All', description: 'All projects', count: projects.length },
+	...categories
+		.map((category) => ({
+			...category,
+			count: projects.filter((project) => project.data.categories.includes(category.id)).length,
+		}))
+		.filter((category) => category.count > 0),
+];
+---
+
+<section class="projects" id="projects" aria-labelledby="projects-title" data-project-filter>
+	<header class="projects__header">
+		<RetypeText as="h2" id="projects-title" class="projects__title" text="Projects" from="Проєкти" />
+		<hr class="projects__rule" data-animate="rule" />
+
+		<nav class="filters" aria-label="Filter projects by category" data-animate="stagger">
+			{
+				filters.map((filter) => (
+					<button
+						class="filters__button"
+						type="button"
+						data-filter={filter.id}
+						aria-pressed={filter.id === 'all' ? 'true' : 'false'}
+						title={filter.description}
+					>
+						<span aria-hidden="true">#</span>
+						{filter.label}
+						<sup class="filters__count" aria-hidden="true">
+							{filter.count}
+						</sup>
+					</button>
+				))
+			}
+		</nav>
+	</header>
+
+	<p class="visually-hidden" aria-live="polite" data-filter-status></p>
+
+	<div class="projects__track" style={{ '--per-row': PER_ROW }} data-per-row={PER_ROW} data-track data-animate="cards">
+		{
+			rows.map((row) => (
+				<ul class="projects__row" role="list">
+					{row.map((project) => (
+						<li data-categories={project.data.categories.join(' ')}>
+							<ProjectCard project={project} />
+						</li>
+					))}
+				</ul>
+			))
+		}
+	</div>
+</section>
+
+<style>
+	.projects {
+		padding-block: var(--space-xl);
+	}
+
+	.projects__title {
+		font-size: var(--step-4);
+	}
+
+	.projects__rule {
+		margin-block: 1.25rem 0;
+		border: 0;
+		border-block-start: 1px solid var(--color-line);
+		transform-origin: left;
+	}
+
+	/* One line of hashtags under the rule; scrolls sideways on narrow screens instead of wrapping. */
+	.filters {
+		display: flex;
+		gap: 0.25rem clamp(1rem, 0.5rem + 1.5vw, 2rem);
+		margin-block-start: 0.85rem;
+		overflow-x: auto;
+		scrollbar-width: none;
+		white-space: nowrap;
+	}
+
+	.filters__button {
+		flex: none;
+		padding: 0.25rem 0;
+		border: 0;
+		background: none;
+		font-family: var(--font-mono-stack);
+		font-size: var(--step-0);
+		font-weight: 500;
+		color: var(--color-muted);
+		cursor: pointer;
+		text-decoration: underline 1px transparent;
+		text-underline-offset: 0.35em;
+		transition:
+			color 0.3s var(--ease-out),
+			text-decoration-color 0.3s var(--ease-out);
+
+		&:hover {
+			color: var(--color-ink);
+		}
+
+		&[aria-pressed='true'] {
+			color: var(--color-ink);
+			text-decoration-color: currentColor;
+		}
+
+		&:focus-visible {
+			outline-offset: 2px;
+		}
+	}
+
+	.filters__count {
+		margin-inline-start: 0.15em;
+		font-size: 0.65em;
+		font-weight: 400;
+	}
+
+	/* Spans the full width of the header rule. */
+	.projects__track {
+		--gap: var(--space-m);
+
+		container-type: inline-size;
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: var(--space-s);
+		margin-block-start: var(--space-l);
+
+		@media (width >= 40rem) {
+			grid-template-columns: repeat(3, 1fr);
+			gap: var(--gap);
+		}
+	}
+
+	/* Below the wide breakpoint, rows dissolve and cards flow in one grid. */
+	.projects__row {
+		display: contents;
+	}
+
+	/*
+	 * Wide screens: full rows of --per-row cards, flush with both ends of the rule.
+	 * The hovered card widens to the right; the cards after it shift right and
+	 * narrow slightly so the row still ends exactly at the rule.
+	 * Filtered-out cards are [hidden], so "last card" means last *visible* card.
+	 */
+	@media (width >= 64rem) {
+		.projects__track {
+			--grow: 0.45;
+			--card: calc((100cqi - (var(--per-row) - 1) * var(--gap)) / var(--per-row));
+			--card-height: calc(var(--card) * 2);
+			--card-ratio: auto;
+
+			grid-template-columns: 1fr;
+			row-gap: var(--gap);
+		}
+
+		.projects__row {
+			display: flex;
+			gap: var(--gap);
+
+			& > li {
+				flex: 0 1 var(--card);
+				min-inline-size: 0;
+				transition: flex-basis 0.7s var(--ease-out);
+			}
+
+			& > li:is(:hover, :focus-within) {
+				flex: 0 0 calc(var(--card) * (1 + var(--grow)));
+			}
+
+			/* Cards before the hovered one keep their size and position. */
+			& > li:has(~ li:is(:hover, :focus-within)) {
+				flex-shrink: 0;
+			}
+		}
+
+		/*
+		 * The last card in a row has nothing to push, so the cards before it make room
+		 * instead. (In a row that isn't full there's spare space, so nothing shrinks.)
+		 */
+		.projects__row:has(> li:nth-last-child(1 of :not([hidden])):is(:hover, :focus-within))
+			> li:not(:hover, :focus-within) {
+			flex-shrink: 1;
+		}
+	}
+
+	@media (width >= 64rem) and (prefers-reduced-motion: reduce) {
+		.projects__row > li {
+			transition-duration: 0.01s;
+		}
+	}
+</style>

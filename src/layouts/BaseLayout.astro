@@ -1,0 +1,74 @@
+---
+import { Font } from 'astro:assets';
+import { ClientRouter } from 'astro:transitions';
+import { site, url } from '../data/site.js';
+import TransitionOverlay from '../components/TransitionOverlay.astro';
+import Cursor from '../components/Cursor.astro';
+import '../styles/global.css';
+
+const { title, description = site.description } = Astro.props;
+
+const pageTitle = title ? `${title} — ${site.name}` : `${site.name} — ${site.role}`;
+const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site) : undefined;
+---
+
+<!doctype html>
+<html lang="en" transition:animate="none">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>{pageTitle}</title>
+		<meta name="description" content={description} />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="theme-color" content="#fdfdfd" />
+		<link rel="icon" type="image/svg+xml" href={url('/favicon.svg')} />
+		<link rel="icon" href={url('/favicon.ico')} sizes="32x32" />
+		{canonical && <link rel="canonical" href={canonical} />}
+
+		<meta property="og:type" content="website" />
+		<meta property="og:title" content={pageTitle} />
+		<meta property="og:description" content={description} />
+		{canonical && <meta property="og:url" content={canonical} />}
+
+		<Font cssVariable="--font-display" preload />
+		<Font cssVariable="--font-body" />
+		<Font cssVariable="--font-mono" />
+
+		<ClientRouter />
+	</head>
+	<body>
+		<a class="skip-link visually-hidden" href="#main">Skip to content</a>
+		<!-- Faint liquid grid behind every page, drawn by src/scripts/liquid-grid.js. -->
+		<canvas class="liquid-grid" data-liquid-grid aria-hidden="true"></canvas>
+		<slot />
+		<TransitionOverlay />
+		<Cursor />
+
+		<script>
+			import '../scripts/main.js';
+		</script>
+	</body>
+</html>
+
+<style>
+	.liquid-grid {
+		position: fixed;
+		inset: 0;
+		z-index: -1;
+		inline-size: 100%;
+		block-size: 100%;
+		pointer-events: none;
+		color: var(--color-ink); /* line colour, read by the script */
+	}
+
+	.skip-link {
+		position: fixed;
+		inset-block-start: 1rem;
+		inset-inline-start: 1rem;
+		z-index: 100;
+		padding: 0.5rem 1rem;
+		background: var(--color-ink);
+		color: var(--color-bg);
+		font-family: var(--font-mono-stack);
+	}
+</style>

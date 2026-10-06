@@ -1,0 +1,84 @@
+---
+/**
+ * "Scroll ↓" cue (or any label + arrow, e.g. "Up ↑"). Renders a link when given
+ * `href`, otherwise a button (wired up by script, e.g. the project gallery).
+ *
+ * - `fadeOnPageScroll`: fades out over the first stretch of page scrolling.
+ * - A `data-done` attribute (set by script) fades it out too.
+ */
+const { href, label = 'Scroll', arrow = '↓', fadeOnPageScroll = false, class: className, ...attrs } = Astro.props;
+const Tag = href ? 'a' : 'button';
+---
+
+<Tag
+	class:list={['cue', className, { 'cue--page-fade': fadeOnPageScroll }]}
+	href={href}
+	type={href ? undefined : 'button'}
+	{...attrs}
+>
+	{label} <span class="cue__arrow" aria-hidden="true">{arrow}</span>
+</Tag>
+
+<style>
+	.cue {
+		display: inline-flex;
+		gap: 0.5em;
+		padding: 0.25rem 0;
+		border: 0;
+		background: none;
+		font-family: var(--font-mono-stack);
+		font-size: var(--step--1);
+		color: var(--color-muted);
+		text-decoration: none;
+		cursor: pointer;
+		transition:
+			color 0.3s var(--ease-out),
+			opacity 0.4s var(--ease-out),
+			visibility 0.4s;
+
+		&:hover {
+			color: var(--color-ink);
+		}
+
+		&[hidden] {
+			display: none;
+		}
+
+		&[data-done] {
+			opacity: 0;
+			visibility: hidden;
+		}
+	}
+
+	@supports (animation-timeline: scroll()) {
+		.cue--page-fade {
+			animation: cue-out linear both;
+			animation-timeline: scroll(root);
+			animation-range: 0 25vh;
+		}
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		.cue__arrow {
+			animation: cue-bob 1.6s var(--ease-out) infinite;
+		}
+	}
+
+	@keyframes cue-out {
+		to {
+			opacity: 0;
+			visibility: hidden;
+		}
+	}
+
+	@keyframes cue-bob {
+		0%,
+		100% {
+			translate: 0 -0.15em;
+		}
+
+		50% {
+			translate: 0 0.25em;
+		}
+	}
+</style>

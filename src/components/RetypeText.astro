@@ -1,0 +1,44 @@
+---
+/**
+ * Heading text that retypes from `from` (Ukrainian) into `text` (English).
+ * Screen readers and no-JS visitors only ever get the final `text`.
+ *
+ * Invisible copies of both strings share one grid cell with the animated
+ * text, so the heading keeps its final width while letters change — anything
+ * sized from it (like the bio under the name) never reflows mid-animation.
+ */
+const { text, from, as: Tag = 'span', ...attrs } = Astro.props;
+---
+
+<Tag {...attrs}>
+	<span class="visually-hidden">{text}</span>
+	<span class="retype-box" aria-hidden="true">
+		<span class="retype-sizer">{text}</span>
+		<span class="retype-sizer">{from}</span>
+		<span class="retype" data-animate="retype" data-from={from}>{text}</span>
+	</span>
+</Tag>
+
+<style>
+	.retype-box {
+		display: inline-grid;
+
+		& > * {
+			grid-area: 1 / 1;
+			white-space: pre-wrap;
+		}
+	}
+
+	.retype-sizer {
+		visibility: hidden;
+	}
+
+	/*
+	 * Mid-animation the mixed text can lose all its spaces (they sit at different
+	 * positions in each language) and become one long "word". Let it break anywhere
+	 * so it never widens the heading — the sizers above keep the real line breaks.
+	 */
+	.retype {
+		overflow-wrap: anywhere;
+	}
+</style>

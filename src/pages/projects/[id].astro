@@ -1,0 +1,395 @@
+---
+import { Image, getImage } from 'astro:assets';
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SoftwareIcon from '../../components/SoftwareIcon.astro';
+import ScrollCue from '../../components/ScrollCue.astro';
+import RetypeText from '../../components/RetypeText.astro';
+import { categories as allCategories } from '../../data/categories.js';
+import { url } from '../../data/site.js';
+
+export async function getStaticPaths() {
+	const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
+
+	return projects.map((project, index) => ({
+		params: { id: project.id },
+		props: {
+			project,
+			next: projects[(index + 1) % projects.length],
+		},
+	}));
+}
+
+const { project, next } = Astro.props;
+const { title, titleNative, year, categories, software, summary, gallery } = project.data;
+const projectCategories = allCategories.filter((category) => categories.includes(category.id));
+const { Content } = await render(project);
+
+// Optimise video/embed posters the same way as gallery images.
+const galleryItems = await Promise.all(
+	gallery.map(async (item) =>
+		'poster' in item
+			? { ...item, posterSrc: (await getImage({ src: item.poster, width: 1280, format: 'webp' })).src }
+			: item,
+	),
+);
+---
+
+<BaseLayout title={title} description={summary}>
+	<main id="main" class="detail sheet">
+		<aside class="detail__info">
+			<div class="detail__sticky">
+				<a class="btn detail__back" href={url('/#projects')} data-transition-title="Projects">
+					<span class="detail__back-arrow" aria-hidden="true">←</span>Go back
+				</a>
+
+				{/* Same Ukrainian → English retype as the home page headings. */}
+				<RetypeText as="h1" class="detail__title" text={title} from={titleNative} />
+
+				<ul class="detail__categories" role="list" aria-label="Categories" data-animate="stagger">
+					{
+						projectCategories.map((category) => (
+							<li>
+								<a
+									class="tag detail__category"
+									href={url(`/?filter=${category.id}#projects`)}
+									title={`More ${category.description.toLowerCase()} projects`}
+									data-transition-title={category.label}
+								>
+									<span aria-hidden="true">#</span>
+									{category.label}
+								</a>
+							</li>
+						))
+					}
+				</ul>
+
+				{
+					software.length > 0 && (
+						<ul class="detail__software" role="list" aria-label="Software used" data-animate="stagger">
+							{software.map((id) => (
+								<li>
+									<SoftwareIcon id={id} />
+								</li>
+							))}
+						</ul>
+					)
+				}
+
+				<hr class="detail__rule" data-animate="rule" />
+
+				<div class="detail__body" data-animate="fade-up">
+					<p class="detail__year tag">{year}</p>
+					<Content />
+				</div>
+
+				<a class="detail__next" href={url(`/projects/${next.id}/`)} data-transition-title={next.data.title}>
+					<span class="tag">Next project</span>
+					<span class="detail__next-title">
+						{next.data.title} <span class="detail__next-arrow" aria-hidden="true">→</span>
+					</span>
+				</a>
+			</div>
+		</aside>
+
+		<div class="detail__media">
+		<section
+			class="detail__gallery"
+			id="gallery"
+			aria-label={`${title} gallery`}
+			tabindex="0"
+			data-scroller
+			data-scroller-media="(width >= 60rem)"
+		>
+			{
+				galleryItems.map((item, index) =>
+					'embed' in item ? (
+						<figure class="detail__figure" data-animate="reveal">
+							<div class="embed" data-embed={item.embed} data-embed-title={item.alt}>
+								<img src={item.posterSrc} alt={item.alt} width="1280" height="720" loading="lazy" />
+								{/* A real link without JavaScript; the script loads the viewer in place instead. */}
+								<a class="embed__load" href={item.link} target="_blank" rel="noopener" data-embed-load>
+									<span aria-hidden="true">◆</span> View in 3D
+								</a>
+							</div>
+						</figure>
+					) : 'video' in item ? (
+						<figure class="detail__figure" data-animate="reveal">
+							<video
+								controls
+								playsinline
+								preload="none"
+								poster={item.posterSrc}
+								aria-label={item.alt}
+								width="1280"
+								height="720"
+							>
+								<source src={url(item.video)} type="video/mp4" />
+							</video>
+						</figure>
+					) : (
+						<figure class="detail__figure" data-animate="reveal">
+							<Image
+								src={item.src}
+								alt={item.alt}
+								widths={[640, 1024, 1600]}
+								sizes="(width >= 60rem) 55vw, 100vw"
+								loading={index === 0 ? 'eager' : 'lazy'}
+							/>
+						</figure>
+					),
+				)
+			}
+		</section>
+
+		<!-- Shown by script only while the gallery has more to scroll (wide screens). -->
+		<div class="detail__cue">
+			<ScrollCue aria-controls="gallery" data-gallery-cue hidden />
+		</div>
+		</div>
+	</main>
+</BaseLayout>
+
+<style>
+	.detail {
+		--sheet-max: 90rem;
+
+		display: grid;
+		/* Padding, not margin: a margin here would collapse through <body> and add a stray page scroll. */
+		padding: var(--space-m) 0;
+
+		@media (width >= 60rem) {
+			grid-template-columns: minmax(20rem, 0.75fr) minmax(0, 1fr);
+			align-items: start;
+		}
+	}
+
+	.detail__info {
+		padding: var(--space-m) var(--gutter) var(--space-l);
+	}
+
+	.detail__sticky {
+		position: sticky;
+		inset-block-start: var(--space-m);
+		display: grid;
+		justify-items: start;
+	}
+
+	.detail__back {
+		gap: 0.5em;
+		padding-inline: 1.25rem 1.5rem;
+
+		&:hover .detail__back-arrow {
+			translate: -0.2em 0;
+		}
+	}
+
+	/*
+	 * Drawn exactly like the "Next project →" arrow: same font, size and bold outline.
+	 * (Steps Mono's arrows are small — ½ × ⅕ em — so they need the larger size to read.)
+	 */
+	.detail__back-arrow {
+		font-family: var(--font-display-stack);
+		font-size: var(--step-1);
+		line-height: 1;
+		-webkit-text-stroke: var(--bold-display) currentColor;
+		paint-order: stroke fill;
+		/* The glyph sits low in Steps Mono; lift it to line up with the lowercase "Go back". */
+		position: relative;
+		inset-block-start: -0.22em;
+		transition: translate 0.3s var(--ease-out);
+	}
+
+	.detail__title {
+		font-size: var(--step-4);
+		margin-block: var(--space-m) 1rem;
+	}
+
+	.detail__categories {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem 0.75rem;
+		font-size: var(--step-0);
+	}
+
+	.detail__category {
+		text-decoration: underline 1px transparent;
+		text-underline-offset: 0.3em;
+		transition: text-decoration-color 0.3s var(--ease-out);
+
+		&:hover {
+			text-decoration-color: currentColor;
+		}
+	}
+
+	.detail__software {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-block-start: 1rem;
+	}
+
+	.detail__rule {
+		inline-size: 100%;
+		margin-block: 1.5rem;
+		border: 0;
+		border-block-start: 1px solid var(--color-ink);
+		transform-origin: left;
+	}
+
+	.detail__body {
+		display: grid;
+		gap: 1em;
+		max-inline-size: 48ch;
+		color: var(--color-ink-soft);
+	}
+
+	.detail__year {
+		color: var(--color-muted);
+	}
+
+	.detail__next {
+		display: grid;
+		gap: 0.25rem;
+		margin-block-start: var(--space-l);
+		text-decoration: none;
+
+		& .tag {
+			font-size: var(--step--1);
+			color: var(--color-muted);
+		}
+	}
+
+	.detail__next-title {
+		font-family: var(--font-display-stack);
+		font-size: var(--step-1);
+		letter-spacing: var(--tracking-display);
+		-webkit-text-stroke: var(--bold-display) currentColor;
+		paint-order: stroke fill;
+		background: linear-gradient(currentColor 0 0) no-repeat left bottom / 0% 1px;
+		transition: background-size 0.4s var(--ease-out);
+	}
+
+	.detail__next:hover .detail__next-title {
+		background-size: 100% 1px;
+	}
+
+	/* Same nudge as the "← Go back" arrow, pointing the other way. */
+	.detail__next-arrow {
+		display: inline-block;
+		/* Steps Mono draws arrows low; lift it to the middle of the lowercase letters. */
+		position: relative;
+		inset-block-start: -0.16em;
+		transition: translate 0.3s var(--ease-out);
+	}
+
+	.detail__next:hover .detail__next-arrow {
+		translate: 0.2em 0;
+	}
+
+	.detail__gallery {
+		display: grid;
+		/* Images stack edge to edge. */
+		gap: 0;
+		align-content: start;
+		padding: var(--space-m);
+
+		/*
+		 * Wide screens: the gallery is its own scroll area, pinned to the viewport.
+		 * Hovering it scrolls the images; elsewhere scrolls the page. It stops at its
+		 * ends instead of handing the scroll over to the page. The scrollbar is hidden —
+		 * the "Scroll ↓" cue underneath takes its place.
+		 * Keep this breakpoint in sync with data-scroller-media in the markup.
+		 */
+		@media (width >= 60rem) {
+			max-block-size: calc(100dvh - 2 * var(--space-m));
+			overflow-y: auto;
+			overscroll-behavior: contain;
+			scrollbar-width: none;
+		}
+
+		&:focus-visible {
+			outline-offset: -2px;
+		}
+	}
+
+	.detail__media {
+		position: relative;
+
+		@media (width >= 60rem) {
+			position: sticky;
+			inset-block-start: var(--space-m);
+		}
+	}
+
+	/* Sits in the empty strip below the gallery, so it never covers the artwork. */
+	.detail__cue {
+		display: none;
+
+		@media (width >= 60rem) {
+			position: absolute;
+			inset-block-start: 100%;
+			inset-inline: 0;
+			display: grid;
+			place-items: center;
+			block-size: var(--space-m);
+		}
+	}
+
+	/* 3D embed: poster + "View in 3D" until clicked, then the live viewer (16:9). */
+	.embed {
+		position: relative;
+		background: var(--color-dark);
+
+		& img,
+		& iframe {
+			display: block;
+			inline-size: 100%;
+			aspect-ratio: 16 / 9;
+			block-size: auto;
+			border: 0;
+			object-fit: cover;
+		}
+	}
+
+	.embed__load {
+		position: absolute;
+		inset-block-end: var(--space-s);
+		inset-inline-start: 50%;
+		translate: -50% 0;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5em;
+		padding: 0.6rem 1.1rem;
+		clip-path: var(--pixel-corners);
+		background: var(--color-bg);
+		color: var(--color-ink);
+		font-family: var(--font-mono-stack);
+		font-size: var(--step--1);
+		text-decoration: none;
+		transition:
+			background-color 0.3s var(--ease-out),
+			color 0.3s var(--ease-out);
+
+		&:hover,
+		&:focus-visible {
+			background: var(--color-ink);
+			color: var(--color-bg);
+		}
+	}
+
+	.detail__figure {
+		overflow: hidden;
+
+		& img,
+		& video {
+			display: block;
+			inline-size: 100%;
+			block-size: auto;
+		}
+
+		& video {
+			background: var(--color-dark);
+		}
+	}
+</style>

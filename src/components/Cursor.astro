@@ -1,0 +1,48 @@
+---
+/**
+ * Custom pixel-circle cursor (see src/scripts/cursor.js).
+ * Persisted across page navigations so it never blinks or jumps.
+ */
+---
+
+<div class="cursor" data-cursor transition:persist="cursor" aria-hidden="true"></div>
+
+<style>
+	.cursor {
+		position: fixed;
+		inset-block-start: 0;
+		inset-inline-start: 0;
+		z-index: 95;
+		/* Box for the largest circle; cursor.js cuts the pixel circle out with clip-path. */
+		inline-size: 56px;
+		aspect-ratio: 1;
+		background: #fff;
+		/*
+		 * White + "difference" inverts whatever is underneath: a dark dot on the
+		 * light page, a light dot on dark areas, and reversed text/images on hover.
+		 */
+		mix-blend-mode: difference;
+		pointer-events: none;
+		opacity: 0;
+		will-change: transform;
+		transition: opacity 0.3s var(--ease-out);
+
+		&[data-visible] {
+			opacity: 1;
+		}
+	}
+
+	/* Mouse/trackpad only — touch screens keep their normal behaviour. */
+	@media not (pointer: fine) {
+		.cursor {
+			display: none;
+		}
+	}
+
+	/* Hide the system cursor only once the circle is actually running. */
+	@media (pointer: fine) {
+		:global(:root:has(.cursor[data-active]) *) {
+			cursor: none !important;
+		}
+	}
+</style>

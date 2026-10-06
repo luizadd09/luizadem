@@ -1,0 +1,292 @@
+@layer reset, tokens, base, layout, components, utilities;
+
+/* ------------------------------------------------------------------ reset */
+@layer reset {
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+
+	* {
+		margin: 0;
+	}
+
+	html {
+		-webkit-text-size-adjust: none;
+		text-size-adjust: none;
+		interpolate-size: allow-keywords;
+	}
+
+	body {
+		min-block-size: 100dvh;
+		-webkit-font-smoothing: antialiased;
+	}
+
+	img,
+	picture,
+	svg,
+	video {
+		display: block;
+		max-inline-size: 100%;
+		block-size: auto;
+	}
+
+	input,
+	button,
+	textarea,
+	select {
+		font: inherit;
+		color: inherit;
+	}
+
+	h1,
+	h2,
+	h3,
+	p {
+		overflow-wrap: break-word;
+	}
+
+	h1,
+	h2,
+	h3 {
+		text-wrap: balance;
+	}
+
+	p {
+		text-wrap: pretty;
+	}
+
+	ul[role='list'] {
+		list-style: none;
+		padding: 0;
+	}
+}
+
+/* ----------------------------------------------------------------- tokens */
+@layer tokens {
+	:root {
+		color-scheme: light;
+
+		--color-bg: #fdfdfd;
+		--color-ink: #2b2b2b;
+		--color-ink-soft: #4a4a4a;
+		--color-muted: #737373; /* 4.7:1 on --color-bg — keep ≥ 4.5 for small text */
+		--color-line: #6f6f6f;
+		--color-placeholder: #d9d9d9;
+		--color-dark: var(--color-ink); /* footer + loading screen, same grey as hovered buttons */
+		--color-on-dark: #ececec;
+
+		--font-display-stack: var(--font-display), monospace;
+		--font-body-stack: var(--font-body), system-ui, sans-serif;
+		--font-mono-stack: var(--font-mono), ui-monospace, monospace;
+
+		/* Display-font headings: letter spacing (Figma: -2%) and bold thickness. */
+		--tracking-display: -0.02em;
+		/*
+		 * Steps Mono UA has no bold (its weight axis is 300–400), so headings are made
+		 * bold with a same-colour outline drawn behind the letters. Bigger = bolder,
+		 * but keep it ≤ ~0.045em: the font's i/j dot gap is 0.072em and the outline
+		 * eats into it from both sides.
+		 */
+		--bold-display: 0.04em;
+
+		/* Bitmap corners: clips one 2px "pixel" off each corner of a box. */
+		--px: 2px;
+		--pixel-corners: polygon(
+			0 var(--px), var(--px) var(--px), var(--px) 0,
+			calc(100% - var(--px)) 0, calc(100% - var(--px)) var(--px), 100% var(--px),
+			100% calc(100% - var(--px)), calc(100% - var(--px)) calc(100% - var(--px)), calc(100% - var(--px)) 100%,
+			var(--px) 100%, var(--px) calc(100% - var(--px)), 0 calc(100% - var(--px))
+		);
+
+		--step--1: clamp(0.75rem, 0.72rem + 0.12vw, 0.8125rem);
+		--step-0: clamp(0.8125rem, 0.79rem + 0.12vw, 0.9rem);
+		--step-1: clamp(1rem, 0.9rem + 0.5vw, 1.25rem);
+		--step-4: clamp(2.25rem, 1.7rem + 2.4vw, 3.75rem);
+
+		--space-s: 1rem;
+		--space-m: clamp(1.5rem, 1.2rem + 1.2vw, 2.25rem);
+		--space-l: clamp(2.5rem, 1.8rem + 3vw, 4.5rem);
+		--space-xl: clamp(4rem, 2.5rem + 6vw, 8rem);
+		--gutter: clamp(1rem, 0.5rem + 3vw, 5.5rem);
+
+		/* Page width: fluid side margins, capped content width. */
+		--page-margin: clamp(1rem, 0.25rem + 3.5vw, 4rem);
+		--sheet-max: 76rem;
+		--ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+	}
+}
+
+/* ------------------------------------------------------------------- base */
+@layer base {
+	html {
+		scrollbar-gutter: stable;
+
+		/* Scale everything up a touch on very large displays so the layout doesn't look lost. */
+		@media (width >= 120rem) {
+			font-size: 112.5%;
+		}
+
+		@media (width >= 160rem) {
+			font-size: 125%;
+		}
+	}
+
+	body {
+		background: var(--color-bg);
+		color: var(--color-ink);
+		font-family: var(--font-body-stack);
+		font-size: var(--step-0);
+		line-height: 1.5;
+		font-weight: 350;
+	}
+
+	h1,
+	h2,
+	h3 {
+		font-family: var(--font-display-stack);
+		font-weight: 400;
+		line-height: 1;
+		letter-spacing: var(--tracking-display);
+		-webkit-text-stroke: var(--bold-display) currentColor;
+		paint-order: stroke fill;
+	}
+
+	a {
+		color: inherit;
+		text-underline-offset: 0.2em;
+	}
+
+	:focus-visible {
+		outline: 2px solid var(--color-ink);
+		outline-offset: 3px;
+	}
+
+	/*
+	 * Selected text is shown inverted: dark highlight on the light page,
+	 * light highlight on dark surfaces (mark those with data-surface="dark").
+	 */
+	::selection {
+		background: var(--color-ink);
+		color: var(--color-bg);
+	}
+
+	[data-surface='dark'] ::selection,
+	[data-surface='dark']::selection {
+		background: var(--color-on-dark);
+		color: var(--color-dark);
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		html {
+			scroll-behavior: smooth;
+		}
+	}
+}
+
+/* ----------------------------------------------------------------- layout */
+@layer layout {
+	.sheet {
+		position: relative;
+		inline-size: min(100% - 2 * var(--page-margin), var(--sheet-max));
+		margin-inline: auto;
+	}
+}
+
+/* ------------------------------------------------------------- components */
+@layer components {
+	/* Bitmap button: "//CV_eng", "<Go back" — 2px pixel outline, notched corners, dithered fill. */
+	.btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.15em;
+		min-block-size: 1.85rem;
+		padding: 0.25rem 1rem;
+		border: var(--px) solid var(--color-ink);
+		clip-path: var(--pixel-corners);
+		background: transparent;
+		font-family: var(--font-mono-stack);
+		font-size: var(--step--1);
+		color: var(--color-ink);
+		text-decoration: none;
+		cursor: pointer;
+		position: relative;
+		isolation: isolate;
+		overflow: hidden;
+		transition: color 0.15s steps(1, jump-end); /* text flips halfway through the fill */
+
+		/*
+		 * Fill pixelates in/out through 2×2 dither levels: --fill 0 (empty) → 4 (solid).
+		 * Each quadrant of the 2×2 tile switches on at its own level (top-right, bottom-left,
+		 * bottom-right, top-left), giving 25% → checkerboard → 75% → solid. --fill is an
+		 * integer, so its transition steps through the levels and reverses from wherever
+		 * it is when the pointer leaves midway.
+		 */
+		&::before {
+			content: '';
+			position: absolute;
+			inset: 0;
+			z-index: -1;
+			--on: var(--color-ink);
+			background: conic-gradient(
+					color-mix(in srgb, var(--on) calc(clamp(0, var(--fill), 1) * 100%), transparent) 0 25%,
+					color-mix(in srgb, var(--on) calc(clamp(0, var(--fill) - 2, 1) * 100%), transparent) 0 50%,
+					color-mix(in srgb, var(--on) calc(clamp(0, var(--fill) - 1, 1) * 100%), transparent) 0 75%,
+					color-mix(in srgb, var(--on) calc(clamp(0, var(--fill) - 3, 1) * 100%), transparent) 0
+				)
+				0 0 / calc(var(--px) * 2) calc(var(--px) * 2);
+			transition: --fill 0.3s linear;
+		}
+
+		@media (hover: hover) {
+			&:hover {
+				color: var(--color-bg);
+
+				&::before {
+					--fill: 4;
+				}
+			}
+		}
+
+		@media (prefers-reduced-motion: reduce) {
+			&::before {
+				transition-duration: 0s;
+			}
+		}
+	}
+
+	@property --fill {
+		syntax: '<integer>';
+		inherits: false;
+		initial-value: 0;
+	}
+
+	.tag {
+		font-family: var(--font-mono-stack);
+		font-weight: 500;
+	}
+}
+
+/* -------------------------------------------------------------- utilities */
+@layer utilities {
+	.visually-hidden:not(:focus, :active) {
+		position: absolute;
+		inline-size: 1px;
+		block-size: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	/*
+	 * Hide animated elements until GSAP takes over — only when JS runs and
+	 * the user hasn't asked for reduced motion. No-JS users see everything.
+	 */
+	@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+		[data-animate] {
+			visibility: hidden;
+		}
+	}
+}

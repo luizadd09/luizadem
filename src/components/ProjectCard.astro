@@ -1,0 +1,95 @@
+---
+import { Image } from 'astro:assets';
+import { url } from '../data/site.js';
+
+const { project } = Astro.props;
+const { title, year, cover, coverAlt } = project.data;
+---
+
+<article class="card">
+	<a class="card__link" href={url(`/projects/${project.id}/`)} data-transition-title={title}>
+		<Image class="card__image" src={cover} alt={coverAlt} widths={[320, 640]} sizes="(width >= 48rem) 12rem, 45vw" />
+		<div class="card__meta">
+			<span class="card__year">{year}</span>
+			<h3 class="card__title">{title}</h3>
+		</div>
+	</a>
+</article>
+
+<style>
+	.card__link {
+		position: relative;
+		display: block;
+		/* The row sets a fixed height so widening a card doesn't make it taller. */
+		block-size: var(--card-height, auto);
+		aspect-ratio: var(--card-ratio, 1 / 2);
+		overflow: hidden;
+		background: var(--color-placeholder);
+		text-decoration: none;
+		color: var(--color-ink);
+	}
+
+	/* Cover in black and white; on hover/focus it turns to colour and zooms in gently. */
+	.card__image {
+		position: absolute;
+		inset: 0;
+		inline-size: 100%;
+		block-size: 100%;
+		object-fit: cover;
+		transform: scale(1.001);
+		filter: grayscale(1);
+		transition:
+			filter 0.6s var(--ease-out),
+			transform 0.9s var(--ease-out);
+	}
+
+	/*
+	 * Year + name are white with "difference" blending: they always show the
+	 * inverse of what's behind them, so they stay legible over any cover.
+	 */
+	.card__meta {
+		position: absolute;
+		inset-block-start: 0.65rem;
+		inset-inline-end: 1.25rem;
+		z-index: 1;
+		display: grid;
+		justify-items: end;
+		line-height: 1.2;
+		text-align: end;
+		color: #fff;
+		mix-blend-mode: difference;
+	}
+
+	.card__year {
+		font-family: var(--font-mono-stack);
+		font-weight: 500;
+		font-size: var(--step--1);
+	}
+
+	.card__title {
+		font-family: var(--font-body-stack);
+		font-weight: 400;
+		font-size: var(--step--1);
+		letter-spacing: 0;
+		-webkit-text-stroke: 0;
+	}
+
+	@media (hover: hover) {
+		.card__link:hover .card__image {
+			filter: grayscale(0);
+			transform: scale(1.03);
+		}
+	}
+
+	.card__link:focus-visible .card__image {
+		filter: grayscale(0);
+		transform: scale(1.03);
+	}
+
+	/* Touch screens can't hover, so show the covers in colour there. */
+	@media (hover: none) {
+		.card__image {
+			filter: none;
+		}
+	}
+</style>

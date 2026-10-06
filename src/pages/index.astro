@@ -1,0 +1,37 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Intro from '../components/Intro.astro';
+import ProjectsSection from '../components/ProjectsSection.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import ScrollCue from '../components/ScrollCue.astro';
+import { url } from '../data/site.js';
+
+const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
+---
+
+<BaseLayout>
+	<main id="main" class="sheet">
+		<Intro />
+		<ProjectsSection projects={projects} />
+
+		<!--
+			Links to this same page: the page transition covers the screen, the page
+			resets to the top underneath it, and every intro animation plays again.
+		-->
+		<div class="to-top">
+			<ScrollCue href={url('/')} label="Up" arrow="↑" aria-label="Up, back to the top" />
+		</div>
+	</main>
+	<SiteFooter />
+</BaseLayout>
+
+<style>
+	.to-top {
+		display: grid;
+		place-items: center;
+		/* Sits in the space under the projects, with equal gaps above and below. */
+		margin-block-start: calc(var(--space-m) - var(--space-xl));
+		padding-block-end: var(--space-m);
+	}
+</style>

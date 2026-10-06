@@ -1,0 +1,37 @@
+---
+import { site } from '../data/site.js';
+---
+
+<!--
+	Persisted across navigations so GSAP can keep animating the same node
+	while Astro swaps the page underneath it.
+-->
+<div class="overlay" data-surface="dark" data-transition-overlay transition:persist="page-overlay" aria-hidden="true">
+	<p class="overlay__label" data-transition-label>{site.name}</p>
+</div>
+
+<style>
+	.overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 90;
+		display: grid;
+		place-items: center;
+		background: var(--color-dark);
+		color: var(--color-on-dark);
+		clip-path: inset(100% 0 0 0);
+		pointer-events: none;
+	}
+
+	.overlay__label {
+		font-family: var(--font-display-stack);
+		font-size: var(--step-4);
+		line-height: 1;
+		letter-spacing: var(--tracking-display);
+		/* Bold the same way as the headings (see --bold-display in global.css). */
+		-webkit-text-stroke: var(--bold-display) currentColor;
+		paint-order: stroke fill;
+		padding-inline: 1rem;
+		text-align: center;
+	}
+</style>

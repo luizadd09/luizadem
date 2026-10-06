@@ -1,0 +1,147 @@
+---
+import { Image } from 'astro:assets';
+import { site } from '../data/site.js';
+import portrait from '../assets/portrait.svg';
+import logo from '../assets/logo-home.png';
+import RetypeText from './RetypeText.astro';
+import ScrollCue from './ScrollCue.astro';
+---
+
+<section class="intro" aria-labelledby="intro-title">
+	<div class="intro__media">
+		<div class="intro__portrait" data-animate="clip">
+			<Image src={portrait} alt={`Portrait of ${site.name}`} loading="eager" fetchpriority="high" />
+		</div>
+
+		<ul class="intro__docs" role="list" data-animate="stagger">
+			{
+				site.documents.map((doc) => (
+					<li class:list={{ wide: doc.wide }}>
+						<a class="btn" href={doc.href} hreflang={doc.lang} download data-astro-reload>
+							<span aria-hidden="true">//</span>
+							{doc.label}
+						</a>
+					</li>
+				))
+			}
+		</ul>
+	</div>
+
+	<div class="intro__text">
+		<div class="intro__logo" data-animate="pixels">
+			<Image src={logo} alt="Pixel-art cat with a woman's face, leaping" format="png" loading="eager" />
+		</div>
+		<RetypeText as="h1" id="intro-title" class="intro__title" text={site.name} from={site.nameNative} />
+		<div class="intro__bio" data-animate="stagger">
+			{site.bio.map((paragraph) => <p>{paragraph}</p>)}
+		</div>
+	</div>
+
+	<div class="intro__cue" data-animate="fade-up">
+		<ScrollCue href="#projects" fadeOnPageScroll />
+	</div>
+</section>
+
+<style>
+	/* Fills the first screen and centres the portrait + bio as one group. */
+	.intro {
+		position: relative;
+		display: grid;
+		grid-template-columns: minmax(0, 24rem);
+		place-content: center;
+		gap: var(--space-m) var(--space-l);
+		min-block-size: 100svh;
+		padding-block: calc(var(--space-l) + 2rem);
+
+		@media (width >= 48rem) {
+			/* Text column is exactly as wide as the name (see .intro__text). */
+			grid-template-columns: clamp(12rem, 8rem + 10vw, 20rem) auto;
+			align-items: start;
+		}
+	}
+
+	/* Width comes from the name only; the bio then fills that same width. */
+	.intro__text {
+		position: relative;
+		display: grid;
+		inline-size: fit-content;
+		max-inline-size: 100%;
+	}
+
+	.intro__media {
+		/* Keep the portrait from eating a whole phone screen. */
+		@media (width < 48rem) {
+			max-inline-size: 15rem;
+		}
+	}
+
+	.intro__portrait {
+		aspect-ratio: 1;
+		background: var(--color-placeholder);
+		overflow: hidden;
+
+		& img {
+			inline-size: 100%;
+			block-size: 100%;
+			object-fit: cover;
+		}
+	}
+
+	.intro__logo {
+		position: relative;
+		justify-self: center;
+		/* Scales with the name (the text column is exactly as wide as it). */
+		inline-size: 45%;
+		margin-block-end: -3px; /* 9px gap to the name, after its 12px top margin */
+
+		& img {
+			display: block;
+			inline-size: 100%;
+			block-size: auto;
+		}
+
+		/* Hangs above the name without pushing the centred photo + text down. */
+		@media (width >= 48rem) {
+			position: absolute;
+			inset-block-end: 100%;
+			inset-inline: 0;
+			margin-inline: auto;
+		}
+	}
+
+	.intro__docs {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.85rem;
+		margin-block-start: 1.1rem;
+
+		& .wide {
+			grid-column: 1 / -1;
+		}
+
+		& .btn {
+			inline-size: 100%;
+		}
+	}
+
+	.intro__title {
+		font-size: var(--step-4);
+		margin-block: 0.75rem 1.75rem;
+	}
+
+	.intro__bio {
+		display: grid;
+		gap: 1.25em;
+		/* Don't let paragraph length widen the column — match the name instead. */
+		contain: inline-size;
+		color: var(--color-ink-soft);
+	}
+
+	.intro__cue {
+		position: absolute;
+		inset-block-end: var(--space-m);
+		inset-inline: 0;
+		display: grid;
+		justify-items: center;
+	}
+</style>
